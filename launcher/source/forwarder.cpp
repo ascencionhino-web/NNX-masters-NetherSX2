@@ -809,14 +809,14 @@ struct ForwarderConfigTransaction
     Result stage(u64 tid, const std::string &nroPath, const std::string &args)
     {
         struct stat directoryStat{};
-        if (mkdir("sdmc:/switch/nethersx2/forwarders", 0777) != 0 &&
-            (errno != EEXIST || stat("sdmc:/switch/nethersx2/forwarders", &directoryStat) != 0 ||
+        if (mkdir("sdmc:/switch/nxmasters/forwarders", 0777) != 0 &&
+            (errno != EEXIST || stat("sdmc:/switch/nxmasters/forwarders", &directoryStat) != 0 ||
              !S_ISDIR(directoryStat.st_mode)))
             return kForwarderIoError;
 
         char pathBuffer[128];
         const int length = snprintf(pathBuffer, sizeof(pathBuffer),
-            "sdmc:/switch/nethersx2/forwarders/%016llx.cfg", static_cast<unsigned long long>(tid));
+            "sdmc:/switch/nxmasters/forwarders/%016llx.cfg", static_cast<unsigned long long>(tid));
         if (length < 0 || static_cast<size_t>(length) >= sizeof(pathBuffer))
             return kForwarderIoError;
         path = pathBuffer;
@@ -1036,7 +1036,7 @@ struct LegacyForwarderConfig { u64 tid{}; std::string path; };
 
 std::vector<LegacyForwarderConfig> findLegacyForwarders(const std::string &gameKey,u64 stableTid)
 {
-    constexpr const char *directoryPath="sdmc:/switch/nethersx2/forwarders";
+    constexpr const char *directoryPath="sdmc:/switch/nxmasters/forwarders";
     std::vector<LegacyForwarderConfig> found;
     DIR *directory=opendir(directoryPath);
     if(!directory)return found;
