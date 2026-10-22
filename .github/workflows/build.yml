@@ -1,8 +1,9 @@
 name: Build NRO
 
 # Compila el .nro de la rama (RE Outbreak / RE Outbreak File 2).
-# Los APK de NetherSX2 y el SDK de Mesa se descargan del release "inputs"
-# de ESTE mismo repo, que debe ser PRIVADO. No hace falta ningun token.
+# Los APK de NetherSX2 se descargan del release "inputs" de ESTE mismo repo,
+# que debe ser PRIVADO. El SDK de Mesa sale del ultimo release de tu fork
+# publico de danfromtico/mesa-switch. No hace falta ningun token.
 on:
   push:
     branches: [outbreak, outbreak-file2]
@@ -17,6 +18,7 @@ jobs:
     env:
       INPUTS_REPO: ${{ github.repository }}
       INPUTS_TAG: inputs
+      MESA_REPO: ascencionhino-web/mesa-switch
       GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v4
@@ -32,20 +34,26 @@ jobs:
             switch-sdl2_image switch-curl switch-mesa switch-libdrm_nouveau \
             switch-ntfs-3g switch-libpng switch-libjpeg-turbo deko3d
 
-      - name: Descargar APK y SDK (repo privado)
+      - name: Descargar APK (release inputs de este repo privado)
         run: |
           mkdir -p "$RUNNER_TEMP/inputs"
           gh release download "$INPUTS_TAG" --repo "$INPUTS_REPO" \
             --dir "$RUNNER_TEMP/inputs" \
-            --pattern 'NetherSX2-4248.apk' --pattern 'NetherSX2-3668.apk' --pattern 'mesa-sdk.zip'
+            --pattern '*4248*.apk' --pattern '*3668*.apk'
+
+      - name: Descargar SDK de Mesa (ultimo release de tu fork de mesa-switch)
+        run: |
+          gh release download --repo "$MESA_REPO" \
+            --dir "$RUNNER_TEMP/inputs" \
+            --pattern '*switch-unified-horizon-sdk.zip'
           ls -la "$RUNNER_TEMP/inputs"
 
       - name: Compilar
         run: |
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
-          export APK_4248="$RUNNER_TEMP/inputs/NetherSX2-4248.apk"
-          export APK_3668="$RUNNER_TEMP/inputs/NetherSX2-3668.apk"
-          export MESA_SDK_ZIP="$RUNNER_TEMP/inputs/mesa-sdk.zip"
+          export APK_4248="$(ls "$RUNNER_TEMP"/inputs/*4248*.apk | head -1)"
+          export APK_3668="$(ls "$RUNNER_TEMP"/inputs/*3668*.apk | head -1)"
+          export MESA_SDK_ZIP="$(ls "$RUNNER_TEMP"/inputs/*switch-unified-horizon-sdk.zip | head -1)"
           JOBS=4 ./build_all.sh
 
       - name: Subir .nro
