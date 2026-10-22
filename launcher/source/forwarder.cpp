@@ -1,4 +1,7 @@
 #include "forwarder.h"
+#if __has_include("fixed_game.h")
+#include "fixed_game.h"
+#endif
 #include "forwarder_structs.h"
 
 #include <cstdio>
@@ -1418,5 +1421,9 @@ bool forwarder_create(const std::string &gameKey, const std::string &name, const
 
 bool forwarder_create_launcher(char *err,std::size_t errSize)
 {
+    #ifdef FIXED_TITLE
+    return forwarder_create_common("launcher",FIXED_TITLE,FIXED_AUTHOR,"romfs:/forwarder-icon.jpg",true,err,errSize);
+#else
     return forwarder_create_common("launcher","NetherSX2","","romfs:/forwarder-icon.jpg",true,err,errSize);
+#endif
 }

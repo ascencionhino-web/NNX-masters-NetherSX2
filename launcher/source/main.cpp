@@ -3,6 +3,9 @@
 #include <SDL2/SDL_ttf.h>
 #include <SDL2/SDL_image.h>
 
+#if __has_include("fixed_game.h")
+#include "fixed_game.h"
+#endif
 #include <cstdio>
 #include <cstring>
 #include <cstdlib>
@@ -7388,6 +7391,13 @@ int main(int argc, char **argv){
       forwarderKey=candidate;
     }
   }
+#ifdef FIXED_DISC
+  if(!forwarderRequested){
+    forwarderRequested=true;
+    forwarderDirectPath=true;
+    forwarderKey=normalizeLocationPath(FIXED_DISC);
+  }
+#endif
   if(!forwarderRequested) for(int argument=1;argument+1<argc;argument++) if(!strcmp(argv[argument],"-g")){
     forwarderRequested=true;
     forwarderKey=argv[argument+1];
