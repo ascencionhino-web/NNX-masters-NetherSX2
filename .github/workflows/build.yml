@@ -1,0 +1,55 @@
+name: Build NRO
+
+# Compila el .nro de la rama (RE Outbreak / RE Outbreak File 2).
+# Los APK de NetherSX2 y el SDK de Mesa NO estan en este repo: se descargan
+# de un repo PRIVADO (INPUTS_REPO) con un token de solo lectura (INPUTS_TOKEN).
+on:
+  push:
+    branches: [outbreak, outbreak-file2]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: devkitpro/devkita64:latest
+    env:
+      INPUTS_REPO: ${{ vars.INPUTS_REPO }}      # ej. ascencionhino-web/nxmasters-inputs
+      INPUTS_TAG: ${{ vars.INPUTS_TAG || 'inputs' }}
+      GH_TOKEN: ${{ secrets.INPUTS_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Dependencias
+        run: |
+          apt-get update
+          apt-get install -y cmake ninja-build python3 git curl ca-certificates gh
+          dkp-pacman -Syu --noconfirm
+          dkp-pacman -S --noconfirm switch-tools libnx switch-sdl2 switch-sdl2_ttf \
+            switch-sdl2_image switch-curl switch-mesa switch-libdrm_nouveau \
+            switch-ntfs-3g switch-libpng switch-libjpeg-turbo deko3d
+
+      - name: Descargar APK y SDK (repo privado)
+        run: |
+          test -n "$INPUTS_REPO" || { echo "Falta la variable INPUTS_REPO"; exit 1; }
+          test -n "$GH_TOKEN" || { echo "Falta el secret INPUTS_TOKEN"; exit 1; }
+          mkdir -p "$RUNNER_TEMP/inputs"
+          gh release download "$INPUTS_TAG" --repo "$INPUTS_REPO" \
+            --dir "$RUNNER_TEMP/inputs" \
+            --pattern 'NetherSX2-4248.apk' --pattern 'NetherSX2-3668.apk' --pattern 'mesa-sdk.zip'
+          ls -la "$RUNNER_TEMP/inputs"
+
+      - name: Compilar
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          export APK_4248="$RUNNER_TEMP/inputs/NetherSX2-4248.apk"
+          export APK_3668="$RUNNER_TEMP/inputs/NetherSX2-3668.apk"
+          export MESA_SDK_ZIP="$RUNNER_TEMP/inputs/mesa-sdk.zip"
+          JOBS=4 ./build_all.sh
+
+      - name: Subir .nro
+        uses: actions/upload-artifact@v4
+        with:
+          name: nro-${{ github.ref_name }}
+          path: NetherSX2.nro
